@@ -1,0 +1,1 @@
+## An all-in-one Bitcoin platform that lets users automate payments, save BTC, and earn yield—without leaving the Bitcoin ecosystem
