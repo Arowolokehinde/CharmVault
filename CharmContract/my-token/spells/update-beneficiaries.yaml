@@ -1,0 +1,53 @@
+version: 8
+
+# App definition for the inheritance NFT
+apps:
+  $00: n/${app_id}/${app_vk}
+
+# Inputs: the existing inheritance UTXO
+ins:
+  - utxo_id: ${inheritance_utxo}
+    charms:
+      $00:
+        # Current state (before update)
+        owner_pubkey: ${owner_pubkey}
+        last_checkin_block: ${old_checkin_block}
+        trigger_delay_blocks: ${delay_blocks}
+
+        # OLD beneficiaries
+        beneficiaries:
+          - address: ${old_beneficiary_1_address}
+            percentage: ${old_beneficiary_1_percentage}
+          - address: ${old_beneficiary_2_address}
+            percentage: ${old_beneficiary_2_percentage}
+
+        status: Active
+
+# Outputs: the same inheritance with updated beneficiaries
+outs:
+  - address: ${inheritance_address}
+    charms:
+      $00:
+        # Same owner (unchanged)
+        owner_pubkey: ${owner_pubkey}
+
+        # Updated check-in time (also extends deadline)
+        last_checkin_block: ${new_checkin_block}
+
+        # Same delay (unchanged)
+        trigger_delay_blocks: ${delay_blocks}
+
+        # NEW beneficiaries (can add/remove/modify)
+        beneficiaries:
+          - address: ${new_beneficiary_1_address}
+            percentage: ${new_beneficiary_1_percentage}
+          - address: ${new_beneficiary_2_address}
+            percentage: ${new_beneficiary_2_percentage}
+          - address: ${new_beneficiary_3_address}
+            percentage: ${new_beneficiary_3_percentage}
+
+        # Still Active
+        status: Active
+
+    # Same amount of BTC (unchanged)
+    sats: ${total_amount}

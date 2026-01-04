@@ -1,0 +1,34 @@
+version: 8
+
+# App definition for the inheritance NFT
+apps:
+  $00: n/${app_id}/${app_vk}
+
+# Inputs: the existing inheritance UTXO (will be burned)
+ins:
+  - utxo_id: ${inheritance_utxo}
+    charms:
+      $00:
+        owner_pubkey: ${owner_pubkey}
+        last_checkin_block: ${last_checkin_block}
+        trigger_delay_blocks: ${delay_blocks}
+        beneficiaries:
+          - address: ${beneficiary_1_address}
+            percentage: ${beneficiary_1_percentage}
+          - address: ${beneficiary_2_address}
+            percentage: ${beneficiary_2_percentage}
+        status: Active  # or Triggered
+
+# Outputs: BTC distributed to beneficiaries (NO NFT charm - it's burned!)
+outs:
+  # Beneficiary 1 receives their percentage
+  - address: ${beneficiary_1_address}
+    sats: ${beneficiary_1_amount}  # calculated: total * percentage / 100
+
+  # Beneficiary 2 receives their percentage
+  - address: ${beneficiary_2_address}
+    sats: ${beneficiary_2_amount}  # calculated: total * percentage / 100
+
+  # Note: If there were 3 beneficiaries, add a third output here
+  # - address: ${beneficiary_3_address}
+  #   sats: ${beneficiary_3_amount}

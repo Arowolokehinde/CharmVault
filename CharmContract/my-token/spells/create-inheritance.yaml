@@ -1,0 +1,42 @@
+version: 8
+
+# App definition for the inheritance NFT
+apps:
+  $00: n/${app_id}/${app_vk}
+
+# Witness data: the UTXO ID that becomes the app's identity
+# This is private data used for proof, not stored on-chain
+private_inputs:
+  $00: "${funding_utxo}"
+
+# Inputs: the UTXO being spent to create the inheritance
+ins:
+  - utxo_id: ${funding_utxo}
+    charms: {}  # No charms in input (plain BTC UTXO)
+
+# Outputs: the inheritance NFT charm
+outs:
+  - address: ${inheritance_address}
+    charms:
+      $00:
+        # Owner's public key (for authentication)
+        owner_pubkey: ${owner_pubkey}
+
+        # Block height when inheritance is created (last check-in)
+        last_checkin_block: ${current_block}
+
+        # Number of blocks before inheritance triggers (~4320 = 30 days)
+        trigger_delay_blocks: ${delay_blocks}
+
+        # List of beneficiaries with their percentages
+        beneficiaries:
+          - address: ${beneficiary_1_address}
+            percentage: ${beneficiary_1_percentage}
+          - address: ${beneficiary_2_address}
+            percentage: ${beneficiary_2_percentage}
+
+        # Initial status is Active
+        status: Active
+
+    # Amount of BTC locked in the inheritance (in satoshis)
+    sats: ${total_amount}
