@@ -161,14 +161,15 @@ export default function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-5xl md:text-6xl lg:text-hero font-display font-bold mb-6">
-              Lock Bitcoin.{' '}
-              <span className="gradient-text">Schedule Releases.</span>
+              <span className="gradient-text">Save Bitcoin.</span> Automate Payments.{' '}
+              <span className="gradient-text">Earn Yield.</span>
               <br />
-              Completely Programmable.
+              All in One Platform.
             </h1>
 
             <p className="text-xl md:text-2xl text-text-secondary max-w-3xl mx-auto mb-12 leading-relaxed">
-              CharmVault enables trustless, time-locked Bitcoin distribution through programmable vaults.
+              CharmVault is your all-in-one Bitcoin platform. Lock BTC in programmable vaults,
+              save for the future, and earn yield—all without leaving the Bitcoin ecosystem.
               <span className="block mt-2 text-text-muted">
                 No custody. No intermediaries. Pure Bitcoin.
               </span>
@@ -196,8 +197,12 @@ export default function LandingPage() {
                     {isConnecting ? 'Connecting...' : 'Connect Wallet'}
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
-                  <button className="px-8 py-4 glass-card-hover rounded-xl font-semibold text-lg text-text-primary flex items-center gap-2">
-                    Explore Use Cases
+                  <button
+                    onClick={() => navigate('/save')}
+                    className="px-8 py-4 glass-card-hover rounded-xl font-semibold text-lg text-text-primary flex items-center gap-2 border-2 border-accent-amber/50 hover:border-accent-amber transition-all"
+                  >
+                    <Wallet className="w-5 h-5 text-accent-amber" />
+                    Start Saving
                   </button>
                 </>
               ) : (
@@ -251,11 +256,11 @@ export default function LandingPage() {
               Built for Real Use Cases
             </h2>
             <p className="text-xl text-text-secondary">
-              Programmable vaults for every Bitcoin distribution scenario
+              Programmable vaults and savings for every Bitcoin need
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Trust Funds */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -315,6 +320,28 @@ export default function LandingPage() {
               </p>
               <button className="text-accent-purple font-medium flex items-center gap-1 hover:gap-2 transition-all">
                 View Example
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+
+            {/* Save Bitcoin */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="glass-card-hover p-8 group cursor-pointer"
+              onClick={() => navigate('/save')}
+            >
+              <div className="w-16 h-16 rounded-2xl bg-accent-teal/20 flex items-center justify-center mb-6 group-hover:bg-accent-teal/30 transition-colors glow-teal">
+                <Wallet className="w-8 h-8 text-accent-teal" />
+              </div>
+              <h3 className="text-h3 font-display font-semibold mb-3">Save Bitcoin</h3>
+              <p className="text-text-secondary mb-4 leading-relaxed">
+                Secure your BTC savings with optional time-locks. Build your Bitcoin stack safely and earn future yield.
+              </p>
+              <button className="text-accent-teal font-medium flex items-center gap-1 hover:gap-2 transition-all">
+                Start Saving
                 <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
