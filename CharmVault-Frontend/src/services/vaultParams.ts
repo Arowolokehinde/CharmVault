@@ -11,6 +11,7 @@ export interface VaultParams {
   createdAt: string
   ownerAddress: string
   ownerPublicKey: string
+  type?: 'vault' | 'savings' // Type to differentiate between vaults and savings
 }
 
 class VaultParamsService {

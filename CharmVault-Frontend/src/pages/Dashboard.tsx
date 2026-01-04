@@ -138,13 +138,22 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <button
-                onClick={() => navigate('/create')}
-                className="px-6 py-3 bg-accent-teal rounded-xl font-semibold text-white shadow-glow-teal hover:shadow-xl transition-all duration-300 flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Create Vault
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/save')}
+                  className="px-6 py-3 glass-card-hover rounded-xl font-semibold text-white flex items-center gap-2 border-2 border-accent-amber/50 hover:border-accent-amber transition-all"
+                >
+                  <Wallet className="w-5 h-5 text-accent-amber" />
+                  Savings
+                </button>
+                <button
+                  onClick={() => navigate('/create')}
+                  className="px-6 py-3 bg-accent-teal rounded-xl font-semibold text-white shadow-glow-teal hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create Automation
+                </button>
+              </div>
             </div>
           </div>
         </div>

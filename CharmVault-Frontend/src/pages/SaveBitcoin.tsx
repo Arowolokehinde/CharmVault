@@ -128,7 +128,8 @@ export default function SaveBitcoin() {
         triggerDelayBlocks,
         createdAt: new Date().toISOString(),
         ownerAddress: walletState!.address,
-        ownerPublicKey: walletState!.publicKey
+        ownerPublicKey: walletState!.publicKey,
+        type: 'savings' // Mark as savings type
       })
 
       setCreationStep('Savings created successfully!')

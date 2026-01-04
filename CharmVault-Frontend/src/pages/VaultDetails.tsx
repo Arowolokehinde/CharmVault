@@ -30,6 +30,7 @@ interface VaultData {
   unlockBlock: number
   progress: number
   transactions: Array<{ type: string; date: string; txHash: string; block: number }>
+  type?: 'vault' | 'savings' // Type to differentiate between vaults and savings
 }
 
 export default function VaultDetails() {
@@ -91,7 +92,8 @@ export default function VaultDetails() {
               txHash: id.split(':')[0],
               block: createdBlock
             }
-          ]
+          ],
+          type: params.type || 'vault' // Default to vault if type is not specified
         })
       } catch (err: any) {
         console.error('Failed to fetch vault data:', err)
@@ -177,10 +179,16 @@ export default function VaultDetails() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="glass-card-hover px-4 py-2 text-sm font-medium flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Explorer
-              </button>
+              <a
+                href={`https://mempool.space/testnet4/tx/${vault.id.split(':')[0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <button className="glass-card-hover px-4 py-2 text-sm font-medium flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" />
+                  Explorer
+                </button>
+              </a>
               {vault.status === 'Active' && (
                 <a href="/vault/1/beneficiaries">
                   <button className="px-4 py-2 bg-accent-teal rounded-lg text-sm font-semibold text-white flex items-center gap-2">
@@ -275,19 +283,34 @@ export default function VaultDetails() {
             <div className="text-sm text-text-muted">{daysRemaining} days remaining</div>
           </div>
 
-          {/* Beneficiaries */}
-          <div className="glass-card p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-accent-purple/20 flex items-center justify-center">
-                <Users className="w-5 h-5 text-accent-purple" />
+          {/* Beneficiaries or Yield */}
+          {vault.type === 'savings' ? (
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-accent-purple/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-accent-purple" />
+                </div>
+                <h3 className="text-sm font-semibold text-text-secondary">Yield</h3>
               </div>
-              <h3 className="text-sm font-semibold text-text-secondary">Beneficiaries</h3>
+              <div className="text-2xl font-display font-bold mb-1 text-text-secondary">
+                Coming Soon
+              </div>
+              <div className="text-text-muted">Earn yield on your savings</div>
             </div>
-            <div className="text-3xl font-display font-bold mb-1">
-              {vault.beneficiaries.length}
+          ) : (
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-accent-purple/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-accent-purple" />
+                </div>
+                <h3 className="text-sm font-semibold text-text-secondary">Beneficiaries</h3>
+              </div>
+              <div className="text-3xl font-display font-bold mb-1">
+                {vault.beneficiaries.length}
+              </div>
+              <div className="text-text-muted">100% allocated</div>
             </div>
-            <div className="text-text-muted">100% allocated</div>
-          </div>
+          )}
         </motion.div>
 
         {/* Unlock Timeline */}
@@ -366,80 +389,82 @@ export default function VaultDetails() {
           </div>
         </motion.div>
 
-        {/* Beneficiaries Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="glass-card p-8 mb-8"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-display font-bold">Beneficiaries</h3>
-            {vault.status === 'Active' && (
-              <a href="/vault/1/beneficiaries">
-                <button className="glass-card-hover px-4 py-2 text-sm font-medium flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
-                  Edit
-                </button>
-              </a>
-            )}
-          </div>
+        {/* Beneficiaries Table - Only show for vaults, not savings */}
+        {vault.type !== 'savings' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="glass-card p-8 mb-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-display font-bold">Beneficiaries</h3>
+              {vault.status === 'Active' && (
+                <a href="/vault/1/beneficiaries">
+                  <button className="glass-card-hover px-4 py-2 text-sm font-medium flex items-center gap-2">
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
+                </a>
+              )}
+            </div>
 
-          <div className="space-y-3">
-            {vault.beneficiaries.map((beneficiary, index) => (
-              <div key={index} className="glass-card p-5">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  {/* Left: Address Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-text-muted mb-1">Beneficiary {index + 1}</div>
-                    <div className="flex items-center gap-2">
-                      <code className="font-mono text-sm text-text-secondary truncate">
-                        {beneficiary.address}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(beneficiary.address)}
-                        className="flex-shrink-0 p-1 hover:bg-white/5 rounded transition-colors"
-                      >
-                        <Copy className="w-4 h-4 text-text-muted" />
-                      </button>
+            <div className="space-y-3">
+              {vault.beneficiaries.map((beneficiary, index) => (
+                <div key={index} className="glass-card p-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Left: Address Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-text-muted mb-1">Beneficiary {index + 1}</div>
+                      <div className="flex items-center gap-2">
+                        <code className="font-mono text-sm text-text-secondary truncate">
+                          {beneficiary.address}
+                        </code>
+                        <button
+                          onClick={() => copyToClipboard(beneficiary.address)}
+                          className="flex-shrink-0 p-1 hover:bg-white/5 rounded transition-colors"
+                        >
+                          <Copy className="w-4 h-4 text-text-muted" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right: Allocation */}
+                    <div className="flex items-center gap-8">
+                      {/* Percentage */}
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-accent-amber">
+                          {beneficiary.percentage}%
+                        </div>
+                        <div className="text-xs text-text-muted">Allocation</div>
+                      </div>
+
+                      {/* Amount */}
+                      <div className="text-right min-w-[120px]">
+                        <div className="text-lg font-semibold">
+                          {((vault.lockedBTC * beneficiary.percentage) / 100).toFixed(4)} BTC
+                        </div>
+                        <div className="text-sm text-text-muted">
+                          ≈ ${((vault.lockedBTC * beneficiary.percentage * btcPrice) / 100).toLocaleString()}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Right: Allocation */}
-                  <div className="flex items-center gap-8">
-                    {/* Percentage */}
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-accent-amber">
-                        {beneficiary.percentage}%
-                      </div>
-                      <div className="text-xs text-text-muted">Allocation</div>
-                    </div>
-
-                    {/* Amount */}
-                    <div className="text-right min-w-[120px]">
-                      <div className="text-lg font-semibold">
-                        {((vault.lockedBTC * beneficiary.percentage) / 100).toFixed(4)} BTC
-                      </div>
-                      <div className="text-sm text-text-muted">
-                        ≈ ${((vault.lockedBTC * beneficiary.percentage * btcPrice) / 100).toLocaleString()}
-                      </div>
+                  {/* Progress Bar */}
+                  <div className="mt-3">
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-accent-amber rounded-full"
+                        style={{ width: `${beneficiary.percentage}%` }}
+                      />
                     </div>
                   </div>
                 </div>
-
-                {/* Progress Bar */}
-                <div className="mt-3">
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent-amber rounded-full"
-                      style={{ width: `${beneficiary.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Transaction History */}
         <motion.div

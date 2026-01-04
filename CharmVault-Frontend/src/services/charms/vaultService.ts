@@ -14,6 +14,7 @@ import { bitcoinClient } from '../bitcoin/bitcoinClient'
 import { proverClient } from './proverClient'
 import { spellBuilder } from './spellBuilder'
 import { convertRawTxToPsbt, extractTxFromPsbt } from '../bitcoin/psbtHelper'
+import { utxoLockService } from '../utxoLockService'
 
 class VaultService {
   private vaultsCache: Map<string, Vault> = new Map()
@@ -72,7 +73,7 @@ class VaultService {
       fundingUTXO = this.selectFundingUTXO(walletState.utxos, amount)
       if (!fundingUTXO) {
         throw new CharmVaultError(
-          'No suitable UTXO found for funding vault',
+          'Insufficient funds or all suitable UTXOs are currently locked/cooling down. Please try again in a few minutes.',
           'INSUFFICIENT_FUNDS'
         )
       }
@@ -86,23 +87,29 @@ class VaultService {
         )
       }
 
-      // Get current block height
-      const currentBlock = await bitcoinClient.getCurrentBlockHeight()
+      // LOCK UTXO immediately to prevent double spending
+      const utxoId = `${fundingUTXO.txid}:${fundingUTXO.vout}`
+      utxoLockService.lockUTXO(utxoId, 'creating_vault')
+      console.log(`🔒 Locked UTXO ${utxoId} for vault creation`)
 
-      // Get fee estimate
-      const feeEstimates = await bitcoinClient.getFeeEstimates()
-      const feeRate = feeEstimates.halfHourFee || 2.0
+      try {
+        // Get current block height
+        const currentBlock = await bitcoinClient.getCurrentBlockHeight()
 
-      // Build create vault parameters
-      const params: CreateVaultParams = {
-        amount, // Amount to lock in vault
-        fundingUTXO,
-        ownerPubkey: walletState.publicKey,
-        beneficiaries,
-        triggerDelayBlocks,
-        changeAddress: walletState.address,
-        feeRate,
-      }
+        // Get fee estimate
+        const feeEstimates = await bitcoinClient.getFeeEstimates()
+        const feeRate = feeEstimates.halfHourFee || 2.0
+
+        // Build create vault parameters
+        const params: CreateVaultParams = {
+          amount, // Amount to lock in vault
+          fundingUTXO,
+          ownerPubkey: walletState.publicKey,
+          beneficiaries,
+          triggerDelayBlocks,
+          changeAddress: walletState.address,
+          feeRate,
+        }
 
       // Debug logging
       console.log('Wallet state:', {
@@ -225,39 +232,52 @@ class VaultService {
         )
       }
 
-      console.log(`Vault created! TXID: ${vaultTxid}`)
+        console.log(`Vault created! TXID: ${vaultTxid}`)
 
-      // Create vault object for cache
-      const vault: Vault = {
-        id: `${vaultTxid}:0`,
-        type: 'Inheritance',
-        status: InheritanceStatus.Active,
-        lockedBTC: amount / 100000000, // Convert satoshis to BTC
-        unlockDate: this.calculateUnlockDate(currentBlock, triggerDelayBlocks),
-        unlockBlock: currentBlock + triggerDelayBlocks,
-        createdAt: new Date().toISOString(),
-        createdBlock: currentBlock,
-        beneficiaries: beneficiaries.map((b) => ({ ...b })),
-        ownerPubkey: walletState.publicKey,
-        triggerDelayBlocks,
-        transactions: [
-          {
-            txid: vaultTxid,
-            type: 'create',
-            timestamp: new Date().toISOString(),
-            blockHeight: currentBlock,
-            confirmations: 0,
-          },
-        ],
+        // UNLOCK UTXO after successful vault creation
+        utxoLockService.unlockUTXO(utxoId)
+        console.log(`🔓 Unlocked UTXO ${utxoId} after successful vault creation`)
+
+        // Create vault object for cache
+        const vault: Vault = {
+          id: `${vaultTxid}:0`,
+          type: 'Inheritance',
+          status: InheritanceStatus.Active,
+          lockedBTC: amount / 100000000, // Convert satoshis to BTC
+          unlockDate: this.calculateUnlockDate(currentBlock, triggerDelayBlocks),
+          unlockBlock: currentBlock + triggerDelayBlocks,
+          createdAt: new Date().toISOString(),
+          createdBlock: currentBlock,
+          beneficiaries: beneficiaries.map((b) => ({ ...b })),
+          ownerPubkey: walletState.publicKey,
+          triggerDelayBlocks,
+          transactions: [
+            {
+              txid: vaultTxid,
+              type: 'create',
+              timestamp: new Date().toISOString(),
+              blockHeight: currentBlock,
+              confirmations: 0,
+            },
+          ],
+        }
+
+        // Cache vault
+        this.vaultsCache.set(vault.id, vault)
+
+        // Store in localStorage for persistence
+        this.saveVaultToStorage(vault)
+
+        return vaultTxid
+
+      } catch (innerError: any) {
+        // UNLOCK UTXO on error
+        utxoLockService.unlockUTXO(utxoId)
+        console.log(`🔓 Unlocked UTXO ${utxoId} after error`)
+
+        // Re-throw the error to be handled by outer catch
+        throw innerError
       }
-
-      // Cache vault
-      this.vaultsCache.set(vault.id, vault)
-
-      // Store in localStorage for persistence
-      this.saveVaultToStorage(vault)
-
-      return vaultTxid
     } catch (error: any) {
       // Detect duplicate UTXO error from Prover API
       if (error.message?.includes('duplicate funding UTXO') && fundingUTXO) {
@@ -610,15 +630,24 @@ class VaultService {
     const now = Date.now()
     const FAILURE_COOLDOWN = 5 * 60 * 1000 // 5 minutes
 
-    // Find smallest UTXO that covers the amount AND hasn't failed recently
+    // Clear expired locks before selecting
+    utxoLockService.clearExpiredLocks()
+
+    // Find smallest UTXO that covers amount AND is not failed/pending/locked
     const suitableUTXOs = utxos
       .filter((utxo) => {
         if (utxo.value < requiredAmount) return false
 
         const utxoId = `${utxo.txid}:${utxo.vout}`
-        const failure = this.failedUTXOs.get(utxoId)
+
+        // Skip if UTXO is currently locked (in-flight to Prover)
+        if (utxoLockService.isLocked(utxoId)) {
+          console.log(`🔒 Skipping UTXO ${utxoId} (currently locked)`)
+          return false
+        }
 
         // Skip if failed recently (within cooldown period)
+        const failure = this.failedUTXOs.get(utxoId)
         if (failure && (now - failure.lastFailed) < FAILURE_COOLDOWN) {
           console.log(`⏭️ Skipping UTXO ${utxoId} (failed ${failure.count} times, cooling down)`)
           return false
